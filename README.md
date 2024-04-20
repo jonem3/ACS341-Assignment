@@ -12,6 +12,8 @@ seen on the same screen.
 
 *For some of the following commands, `python3` may need to be replaced with `python` depending on your environment variables*
 
+*The majority of these commands are there to keep a clean base install of python, if you are on a managed University computer or a computer where you do not have administrator privileges, skip to step 7*
+
 1. Ensure Python 3 is installed and pip is up-to-date
 2. Open a terminal or command prompt at the root folder of the project
 3. Run `pip3 install virtualenv`
