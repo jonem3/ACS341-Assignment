@@ -20,3 +20,6 @@ seen on the same screen.
 6. Your terminal environment should now show `(venv) $` to indicate successful activation 
 7. Install all dependencies by running `pip3 install -r requirements.txt`
 8. Run the `main.py` file by running `python3 main.py`
+
+*Known Issues*
+1. `Error: Can not perform a '--user' install. User site-packages are not visible in this virtualenv` FIX: Go to `pyvenv.cfg` and set `include-system-site-packages` to `true` and reactivate venv
