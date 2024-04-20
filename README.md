@@ -10,6 +10,8 @@ This will take
 quite some time. After this, I would recommend re-running so all relevant information can be
 seen on the same screen.
 
+*For some of the following commands, `python3` may need to be replaced with `python` depending on your environment variables*
+
 1. Ensure Python 3 is installed and pip is up-to-date
 2. Open a terminal or command prompt at the root folder of the project
 3. Run `pip3 install virtualenv`
