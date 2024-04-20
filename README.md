@@ -16,7 +16,7 @@ seen on the same screen.
 2. Open a terminal or command prompt at the root folder of the project
 3. Run `pip3 install virtualenv`
 4. Create a new python virtual environment by running `python3 -m venv venv`
-5. Activate the virtual environment using `source venv/bin/activate` on Linux or `source venv\Scripts\activate` on Windows
+5. Activate the virtual environment using `source venv/bin/activate` on Linux or `venv\Scripts\activate.bat` on Windows
 6. Your terminal environment should now show `(venv) $` to indicate successful activation 
 7. Install all dependencies by running `pip3 install -r requirements.txt`
 8. Run the `main.py` file by running `python3 main.py`
