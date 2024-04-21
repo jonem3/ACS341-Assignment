@@ -3,20 +3,20 @@
 Within the folder structure for this assignment, I have stored all the dependencies in order to run the project in a
 requirements file as standard for python projects.
 
-### Instructions for setup
+## Instructions for setup
 
 **Please note:** The first time the assignment code is run, it will tune the Tensorflow Model hyperparameters, and save them to a folder within the project.
 This will take
 quite some time. After this, I would recommend re-running so all relevant information can be
 seen on the same screen.
 
-#### Generic Instructions
+### Generic Instructions
 
 1. Download `household_energy_data.csv` from the [assignment page](https://vle.shef.ac.uk/webapps/blackboard/content/listContent.jsp?course_id=_107288_1&content_id=_6604809_1&mode=reset) ensuring that the file name matches exactly here *(no `(1)`, etc.)*
 2. Save the above file into the `./assignment_docs` at the root of the project
 3. When the `main.py` file has finished running, there is the option to view all training metrics in Tensorboard. This can be achieved by running `tensorboard --logdir logs` in the root folder of the project, and then accessing the link that this command provides
 
-#### Python Instructions
+### Python Instructions
 
 *For some of the following commands, `python3` may need to be replaced with `python` depending on your environment variables. Please verify that `python --version` is on at least version `3.10` if this is the case, as this project will not work in Python 2 and may not work on older versions of Python 3*
 
@@ -31,11 +31,11 @@ seen on the same screen.
 7. Install all dependencies by running `pip3 install -r requirements.txt`
 8. Run the `main.py` file by running `python3 main.py`
 
-### Known Issues
+## Known Issues
 1. `Error: Can not perform a '--user' install. User site-packages are not visible in this virtualenv` FIX: Go to `pyvenv.cfg` and set `include-system-site-packages` to `true` and reactivate venv
 2. Occasionally the Tensorflow automatic hyperparameter tuning will be completely wrong and as a result the model training will return a highly underfitted model. FIX: delete `./checkpoints` and `./logs` and run `main.py` again
 
-### Assignment Checklist
+## Assignment Checklist
 - [x] Load Data
 - [x] Pre-Process Data
   - [x] Handle NaN/Inf values
