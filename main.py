@@ -58,6 +58,8 @@ def data_processor(df_processing: pd.DataFrame, data_scale: list) -> tuple:
     :return: Data Frame after processing and data scalars
     """
 
+    df_processing = df_processing.drop(columns=COLUMNS_TO_DROP)
+
     df_processing.replace([np.inf, -np.inf],
                           np.nan,
                           inplace=True)  # Replaces inf values with NaN values
@@ -358,7 +360,6 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
 
 if __name__ == '__main__':
     df = pd.read_csv('assignment_docs/household_energy_data.csv')
-    df = df.drop(columns=COLUMNS_TO_DROP)
     data_scaler = []
     df, data_scaler = data_processor(df, data_scaler)
     linear_regression(df)
