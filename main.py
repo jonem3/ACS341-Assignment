@@ -131,9 +131,10 @@ def find_outliers(df_with_outliers: pd.DataFrame) -> pd.DataFrame:
     """
     threshold = 3
     for col in df_with_outliers.columns.tolist():
-        z = np.abs(stats.zscore(df_with_outliers[col]))
-        outliers = df_with_outliers[z > threshold].index
-        df_with_outliers.loc[outliers, col] = np.nan
+        if col not in WEATHER_COLUMN_TYPES:
+            z = np.abs(stats.zscore(df_with_outliers[col]))
+            outliers = df_with_outliers[z > threshold].index
+            df_with_outliers.loc[outliers, col] = np.nan
     df_with_outliers.interpolate(inplace=True, axis=0)
     return df_with_outliers
 
@@ -230,23 +231,46 @@ def linear_regression(df_processed: pd.DataFrame) -> None:
 def deep_neural_network(df_processed: pd.DataFrame) -> None:
     train_features, train_labels, test_features, test_labels = split_dataset(df_processed)
 
-    tuner = kt.Hyperband(build_model,
-                         objective='val_loss',
-                         max_epochs=50,
-                         factor=3,
-                         directory='./checkpoints',
-                         project_name='acs341_assignment'
-                         )
+    tuner = kt.Hyperband(
+        build_model,
+        objective='val_loss',
+        max_epochs=50,
+        factor=3,
+        directory='./checkpoints',
+        project_name='acs341_assignment'
+    )
 
-    callback = keras.callbacks.EarlyStopping(
+    early_stopping_callback = keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=5,
+        patience=10,
         verbose=1,
         mode='min',
         restore_best_weights=True
     )
 
-    tuner.search(train_features, train_labels, epochs=50, validation_split=0.3, callbacks=[callback])
+    tensorboard_callback = keras.callbacks.TensorBoard(
+        log_dir='./logs',
+        histogram_freq=1
+    )
+
+    reduce_lr_callback = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.8,
+        patience=5,
+        verbose=1,
+    )
+
+    tuner.search(
+        train_features,
+        train_labels,
+        epochs=50,
+        validation_split=0.3,
+        callbacks=[
+            early_stopping_callback,
+            reduce_lr_callback,
+            tensorboard_callback
+        ]
+    )
 
     best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
 
@@ -255,10 +279,15 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
     history = dnn_household_energy_model.fit(
         train_features,
         train_labels,
-        validation_split=0.3,
+        validation_split=0.2,
         verbose=1,
-        epochs=50,
-        callbacks=[callback]
+        epochs=200,
+        batch_size=32,
+        callbacks=[
+            early_stopping_callback,
+            reduce_lr_callback,
+            tensorboard_callback
+        ]
     )
 
     print(dnn_household_energy_model.summary())
@@ -290,8 +319,8 @@ def build_model(hp) -> tf.keras.models.Model:
                                  values=[0.001, 0.01, 0.1, 1.0])  # Possibilities for learning rate
 
     model.compile(loss='mse',
-                  optimizer=tf.keras.optimizers.Adam(learning_rate=hp_learning_rate),
-                  metrics=['accuracy'])
+                  optimizer=tf.keras.optimizers.SGD(learning_rate=hp_learning_rate),
+                  metrics=['mae', 'mse', 'accuracy'])
 
     return model
 
@@ -300,10 +329,10 @@ def plot_loss(history) -> None:
     # df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min()): Max = 1, Min = 2
     loss = (history.history['loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
     val_loss = (history.history['val_loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
-    plt.plot(loss, label='Loss (MSE)')
-    plt.plot(val_loss, label='Validation Loss (MSE)')
+    plt.plot(loss, label='Loss (MAE)')
+    plt.plot(val_loss, label='Validation Loss (MAE)')
     plt.xlabel('Epoch')
-    plt.ylabel('Error [kW^2]')
+    plt.ylabel('Error [kW]')
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -358,7 +387,7 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
     plt.show()
 
     error = prediction - test_labels
-    plt.hist(error, bins=25)
+    plt.hist(error, bins=50)
     plt.xlabel('Prediction Error [kW]')
     plt.ylabel('Count')
     plt.title(title + ' Prediction Error')
