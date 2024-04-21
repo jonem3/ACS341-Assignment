@@ -249,7 +249,6 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
     tuner.search(train_features, train_labels, epochs=50, validation_split=0.3, callbacks=[callback])
 
     best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-    print(best_hps)
 
     dnn_household_energy_model = tuner.hypermodel.build(best_hps)
 
