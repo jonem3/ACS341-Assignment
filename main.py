@@ -75,14 +75,17 @@ def data_processor(df_processing: pd.DataFrame, data_scale: list) -> tuple:
         df_processing[col] = df_processing[col].map({True: 1,
                                                      False: 0})  # Mapping True & False from categorical to 1 & 0
 
+    df_processing = find_outliers(df_processing)
+
     if len(data_scale) + 1 != len(df_processing.columns.tolist()):
         data_scale = build_scalars(df_processing)  # Build scalars array for data scaling
 
     df_processing = min_max_scale(df_processing)
 
-    df_processing = find_outliers(df_processing)
-
     df_processing = remove_collinearity(df_processing)
+
+    sns.pairplot(df_processing.iloc[:, 0:5])  # Generate pairplot of first 5 columns
+    plt.show()
 
     df_processing = pca_restructure(df_processing)
 
