@@ -90,7 +90,7 @@ def data_processor(df_processing: pd.DataFrame, data_scale: list) -> tuple:
 
     df_processing = remove_collinearity(df_processing)
 
-    sns.pairplot(df_processing.iloc[:, 0:5])  # Generate pairplot of first 5 columns
+    sns.pairplot(df_processing.iloc[:, 0:5])  # Generate pair-plot of first 5 columns
     plt.show()
 
     df_processing = pca_restructure(df_processing)
