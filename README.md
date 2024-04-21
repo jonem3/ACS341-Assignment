@@ -14,7 +14,7 @@ seen on the same screen.
 
 1. Download `household_energy_data.csv` from the [assignment page](https://vle.shef.ac.uk/webapps/blackboard/content/listContent.jsp?course_id=_107288_1&content_id=_6604809_1&mode=reset) ensuring that the file name matches exactly here *(no `(1)`, etc.)*
 2. Save the above file into `./assignment_docs` at the root of the project
-3. When the `main.py` file has finished running, there is the option to view all training metrics in Tensorboard. This can be achieved by running `tensorboard --logdir logs` in the root folder of the project, and then accessing the link that this command provides
+3. When the `main_run.py` file has finished running, there is the option to view all training metrics in Tensorboard. This can be achieved by running `tensorboard --logdir logs` in the root folder of the project, and then accessing the link that this command provides
 
 ### Python Setup Instructions
 
@@ -29,11 +29,11 @@ seen on the same screen.
 5. Activate the virtual environment using `source venv/bin/activate` on Linux or `venv\Scripts\activate.bat` on Windows
 6. Your terminal environment should now show `(venv) $` to indicate successful activation 
 7. Install all dependencies by running `pip3 install -r requirements.txt`
-8. Run the `main.py` file by running `python3 main.py`
+8. Run the `main_run.py` file by running `python3 main_run.py`
 
 ## Known Issues
 1. `Error: Can not perform a '--user' install. User site-packages are not visible in this virtualenv` FIX: Go to `pyvenv.cfg` and set `include-system-site-packages` to `true` and reactivate venv
-2. Occasionally the Tensorflow automatic hyperparameter tuning will be completely wrong and as a result the model training will return a highly underfitted model. FIX: delete `./checkpoints` and `./logs` and run `main.py` again
+2. Occasionally the Tensorflow automatic hyperparameter tuning will be completely wrong and as a result the model training will return a highly underfitted model. FIX: delete `./checkpoints` and `./logs` and run `main_run.py` again
 
 ## Assignment Checklist
 - [x] Load Data
