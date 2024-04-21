@@ -93,7 +93,7 @@ def data_processor(df_processing: pd.DataFrame, data_scale: list) -> tuple:
     sns.pairplot(df_processing.iloc[:, 0:5])  # Generate pair-plot of first 5 columns
     plt.show()
 
-    df_processing = pca_restructure(df_processing)
+    df_processing = pca_reduce_dimension(df_processing)
 
     return df_processing, data_scale
 
@@ -178,7 +178,7 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
     return df_collinearity_check
 
 
-def pca_restructure(df_pre_pca: pd.DataFrame) -> pd.DataFrame:
+def pca_reduce_dimension(df_pre_pca: pd.DataFrame) -> pd.DataFrame:
     weather_cols = (col for col in df_pre_pca.columns.tolist() if "KW" not in col.upper())
     df_weather = df_pre_pca[weather_cols]
 
