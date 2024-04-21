@@ -8,6 +8,9 @@ This script is my submission for ACS341 - Machine Learning Assignment 2
 I have chosen to use Python as in my experience data processing is a lot more streamlined than in MATLAB
 I will be specifying types in all function declarations for the benefit of the reader, please note this is not
 required as standard in Python
+
+All used libraries have been stored to a requirements file for your convenience, full setup instructions can be found
+in README.md in the root folder of this project
 """
 import numpy as np
 import pandas as pd
@@ -18,7 +21,12 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
 from colorama import Fore
-from sklearn.cluster import DBSCAN
+from sklearn.decomposition import PCA
+from scipy import stats
+
+"""
+------------------ TASK 1 ------------------
+"""
 
 # Weather type categories for One-Hot Encoding
 WEATHER_COLUMN_TYPES = [
@@ -41,119 +49,156 @@ COLUMNS_TO_DROP = [
 ]
 
 
-def find_outliers(df: pd.DataFrame) -> pd.DataFrame:
+def data_processor(df_processing: pd.DataFrame, data_scale: list) -> tuple:
+    """
+    Main function for processing the data frame and scaling the data frame
+    Cleans out irrelevant columns before calling other data processing functions (e.g. collinearity, outliers, etc.)
+    :param df_processing: Data Frame to be processed for model training
+    :param data_scale: Scalar values for data scaling so that data can be descaled after model training / prediction
+    :return: Data Frame after processing and data scalars
+    """
+
+    df_processing.replace([np.inf, -np.inf],
+                          np.nan,
+                          inplace=True)  # Replaces inf values with NaN values
+    df_processing.dropna(how='any',
+                         axis=0,
+                         inplace=True)  # Drops all NaN values
+
+    df_processing = pd.get_dummies(df_processing,
+                                   columns=['WeatherIcon'],
+                                   prefix='',
+                                   prefix_sep='')  # One-Hot Encoding on categorical data
+    for col in WEATHER_COLUMN_TYPES:
+        df_processing[col] = df_processing[col].map({True: 1,
+                                                     False: 0})  # Mapping True & False from categorical to 1 & 0
+
+    if len(data_scale) + 1 != len(df_processing.columns.tolist()):
+        data_scale = build_scalars(df_processing)  # Build scalars array for data scaling
+
+    df_processing = min_max_scale(df_processing)
+
+    df_processing = find_outliers(df_processing)
+
+    df_processing = remove_collinearity(df_processing)
+
+    df_processing = pca_restructure(df_processing)
+
+    return df_processing, data_scale
+
+
+def build_scalars(df_reference: pd.DataFrame) -> list:
+    """
+    Calculates the max & min values of each column in the data frame and stores them for scaling / descaling later
+    :param df_reference: the data frame containing the columns to be scaled
+    :return: array of scalars for each column
+    """
+    columns = df_reference.columns.tolist()
+    data_scaler_generator = []
+    for col in columns:
+        if col != 'WeatherIcon':
+            max_col = df_reference[col].max()  # Finds maximum value in column
+            min_col = df_reference[col].min()  # Finds minimum value in column
+            data_scaler_generator.append([col, max_col, min_col])
+    return data_scaler_generator
+
+
+def min_max_scale(df_to_scale: pd.DataFrame) -> pd.DataFrame:
+    for col in df_to_scale.columns.tolist():
+        if col != 'WeatherIcon':
+            df_to_scale[col] = ((df_to_scale[col] - df_to_scale[col].min()) /
+                                (df_to_scale[col].max() - df_to_scale[col].min()))
+    return df_to_scale
+
+
+def find_outliers(df_with_outliers: pd.DataFrame) -> pd.DataFrame:
     """
     Finds outliers in each column using Z-Score, outliers are then replaced with the edge value for the direction of
     the outlier.
-    :param df: The data frame to be cleaned
+    :param df_with_outliers: The data frame to be cleaned
     :return: The cleaned data frame
     """
-    for col in df.columns.tolist():
-        data = df[col].tolist()
-        mean = df[col].mean()
-
-        standard_deviation = df[col].std()
-        for data_point in data:
-            zscore = (data_point - mean) / standard_deviation
-            if zscore > 4:
-                data[data.index(data_point)] = mean + (standard_deviation * 4)
-            elif zscore < -4:
-                data[data.index(data_point)] = mean - (standard_deviation * 4)
-
-        df[col] = data
-    return df
+    threshold = 3
+    for col in df_with_outliers.columns.tolist():
+        z = np.abs(stats.zscore(df_with_outliers[col]))
+        outliers = df_with_outliers[z > threshold].index
+        df_with_outliers.loc[outliers, col] = np.nan
+    df_with_outliers.interpolate(inplace=True, axis=0)
+    return df_with_outliers
 
 
-def build_scalars(df: pd.DataFrame) -> list:
-    """
-    Calculates the max & min values of each column in the data frame and stores them for scaling / descaling later
-    :param df: the data frame containing the columns to be scaled
-    :return: array of scalars for each column
-    """
-    columns = df.columns.tolist()
-    data_scaler = []
-    for col in columns:
-        max_col = df[col].max()  # Finds maximum value in column
-        min_col = df[col].min()  # Finds minimum value in column
-        data_scaler.append([col, max_col, min_col])
-    return data_scaler
-
-
-def remove_collinearity(df: pd.DataFrame) -> pd.DataFrame:
+def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
     """
     Removes collinearity between two columns using Pearson correlation coefficient by checking every combination of
     columns, excluding the output column, as we want to keep columns which correlate with the output.
     If correlation is above 0.9 then the second column is removed
-    :param df: data frame to be checked for collinearity
+    :param df_collinearity_check: data frame to be checked for collinearity
     :return: cleaned data frame
     """
     # TODO - Basing initial collinear detection on: https://www.stratascratch.com/blog/a-beginner-s-guide-to-collinearity-what-it-is-and-how-it-affects-our-regression-model/
 
-    columns = df.columns.tolist()[1:]
+    correlation_matrix = df_collinearity_check.corr()
+    top_corr_features = correlation_matrix.index
+    sns.heatmap(df_collinearity_check[top_corr_features].corr(), annot=False, cmap="RdYlGn")
+    plt.show()
+
+    columns = df_collinearity_check.columns.tolist()[1:]
     for col1 in columns:
-        X = df[col1].to_numpy()
+        x = df_collinearity_check[col1].to_numpy()
         for col2 in columns:
             if col1 != col2:
-                Y = df[col2].to_numpy()
-                pearson = np.corrcoef(X, Y)[0, 1]
+                y = df_collinearity_check[col2].to_numpy()
+                pearson = np.corrcoef(x, y)[0, 1]
                 if abs(pearson) > 0.8:
                     print(Fore.RED + "Dropped:", col2, "Due to collinearity of", pearson, "with:", col1 + Fore.RESET)
 
-                    plt.plot(df[col1], df[col2], 'o')
-                    plt.title('Collinearity Report - (' + col1 + ', ' + col2 + ')')
+                    plt.plot(df_collinearity_check[col1], df_collinearity_check[col2], 'o')
+                    plt.title(
+                        'Collinearity Report - (' + col1 + ', ' + col2 + ', ' +
+                        str(round((100 * float(pearson)), 2)) + '%)')
                     plt.xlabel(col1)
                     plt.ylabel(col2)
                     plt.grid(True)
                     plt.show()
 
                     columns.remove(col2)
-                    df.drop(col2, axis=1, inplace=True)
-    return df
+                    df_collinearity_check.drop(col2, axis=1, inplace=True)
+    return df_collinearity_check
 
 
-def data_processor(df: pd.DataFrame, data_scaler: list) -> tuple:
-    """
-    Main function for processing the data frame and scaling the data frame
-    Cleans out irrelevant columns before calling other data processing functions (e.g. collinearity, outliers, etc.)
-    :param df: Data Frame to be processed for model training
-    :param data_scaler: Scalar values for data scaling so that data can be descaled after model training / prediction
-    :return: Data Frame after processing and data scalars
-    """
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)  # Replaces inf values with NaN values
-    df.dropna(inplace=True, axis=0, how='any')  # Drops all NaN values
+def pca_restructure(df_pre_pca: pd.DataFrame) -> pd.DataFrame:
+    weather_cols = (col for col in df_pre_pca.columns.tolist() if "KW" not in col.upper())
+    df_weather = df_pre_pca[weather_cols]
 
-    df = pd.get_dummies(df, columns=['WeatherIcon'], prefix='', prefix_sep='')  # One-Hot Encoding on categorical data
+    pca = PCA(n_components=5)
+    principal_components_weather = pca.fit_transform(df_weather)
+    principal_df_weather = pd.DataFrame(data=principal_components_weather,
+                                        columns=['Weather_PC1',
+                                                 'Weather_PC2',
+                                                 'Weather_PC3',
+                                                 'Weather_PC4',
+                                                 'Weather_PC5'])
 
-    for col in WEATHER_COLUMN_TYPES:
-        df[col] = df[col].map({True: 1, False: 0})  # Mapping True & False from categorical to 1 & 0
+    df_pre_pca = df_pre_pca.drop(df_weather.columns.tolist(), axis=1)
+    df_pre_pca = pd.concat([df_pre_pca, principal_df_weather], axis=1)
 
-    # for col in df.columns.tolist():
-    #     if 'KW' not in col.upper():
-    #         warning = "Column '" + col + "' has no kW value"
-    #         print(Fore.RED + warning + Fore.RESET)
-    #         df.drop(col, axis=1, inplace=True)  # Dropping all columns that do not involve kW usage / generation
+    df_pre_pca.replace([np.inf, -np.inf], np.nan, inplace=True)  # Replaces inf values with NaN values
+    df_pre_pca.dropna(inplace=True, axis=0, how='any')  # Drops all NaN values
 
-    df = remove_collinearity(df)
-    df = find_outliers(df)
-
-    columns = df.columns.tolist()  # Obtain a list of remaining column names
-
-    if len(data_scaler) != len(columns):
-        data_scaler = build_scalars(df)  # Build scalars array for data scaling
-
-    for col in columns:
-        df[col] = (df[col] - data_scaler[columns.index(col)][2]) / (
-                data_scaler[columns.index(col)][1] - data_scaler[columns.index(col)][2])  # Scaling data for training
-
-    return df, data_scaler
+    return df_pre_pca
 
 
-def linear_regression(df: pd.DataFrame) -> None:
+"""
+------------------ TASK 2 ------------------
+"""
+
+
+def linear_regression(df_processed: pd.DataFrame) -> None:
     """
     Linear regression model generation & testing
-    :param df: Data Frame containing data to build OLS Regression model
+    :param df_processed: Data Frame containing data to build OLS Regression model
     """
-    x, y, x_test, y_test = split_dataset(df)  # Split data into training & testing
+    x, y, x_test, y_test = split_dataset(df_processed)  # Split data into training & testing
 
     model = sm.OLS(y, x)  # Generate Ordinary Least Squares Linear Regression model
 
@@ -166,69 +211,13 @@ def linear_regression(df: pd.DataFrame) -> None:
     quality_graphs(prediction, y_test, 'Linear Regression')
 
 
-def split_dataset(df: pd.DataFrame) -> tuple:
-    """
-    Splits data frame into training and test sets
-    :param df: Full data set to be split
-    :return: Training Input Set, Training Output Set, Testing Input Set, Testing Output Set
-    """
-    train_dataset = df.sample(frac=0.8, random_state=0, axis=0)  # Sample data for training (80%)
-    test_dataset = df.drop(train_dataset.index)  # Drop training data to leave testing data
-
-    # Split datasets into Inputs / Outputs
-    x = train_dataset.iloc[:, 1:]
-    x_test = test_dataset.iloc[:, 1:]
-
-    y = train_dataset.iloc[:, 0]
-    y_test = test_dataset.iloc[:, 0]
-
-    # Add constant 1 column to inputs for offset compensation
-    x = sm.add_constant(x)
-    x_test = sm.add_constant(x_test)
-
-    return x, y, x_test, y_test
+"""
+------------------ TASK 3 ------------------
+"""
 
 
-def build_model(hp) -> tf.keras.models.Model:
-    """
-    Builds model using Keras API from Tensorflow
-
-    :param hp: Model hyperparameters
-    :return: Tensorflow Model
-    """
-    hp_units = hp.Int('units', min_value=1, max_value=100, step=10)  # Define first layer units possibilities for train
-
-    model = keras.Sequential([
-        keras.layers.Dense(units=hp_units, activation='sigmoid'),
-        keras.layers.Dense(64, activation='sigmoid'),
-        keras.layers.Dense(1)
-    ]
-    )
-
-    hp_learning_rate = hp.Choice('learning_rate',
-                                 values=[0.001, 0.01, 0.1, 1.0])  # Possibilities for learning rate
-
-    model.compile(loss='mse',
-                  optimizer=tf.keras.optimizers.Adam(learning_rate=hp_learning_rate),
-                  metrics=['accuracy'])
-
-    return model
-
-
-def plot_loss(history) -> None:
-    loss = (data_scaler[0][1] - data_scaler[0][2]) * (history.history['loss'] + data_scaler[0][2])
-    val_loss = (data_scaler[0][1] - data_scaler[0][2]) * (history.history['val_loss'] + data_scaler[0][2])
-    plt.plot(loss, label='Loss (MSE)')
-    plt.plot(val_loss, label='Validation Loss (MSE)')
-    plt.xlabel('Epoch')
-    plt.ylabel('Error [kW^2]')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-
-def deep_neural_network(df: pd.DataFrame) -> None:
-    train_features, train_labels, test_features, test_labels = split_dataset(df)
+def deep_neural_network(df_processed: pd.DataFrame) -> None:
+    train_features, train_labels, test_features, test_labels = split_dataset(df_processed)
 
     tuner = kt.Hyperband(build_model,
                          objective='val_loss',
@@ -271,11 +260,76 @@ def deep_neural_network(df: pd.DataFrame) -> None:
     quality_graphs(prediction, test_labels, 'Deep Neural Network')
 
 
-def quality_graphs(prediction: list, test_labels: list, title: str) -> None:
-    prediction = (data_scaler[0][1] - data_scaler[0][2]) * (prediction + data_scaler[0][2])
-    test_labels = (data_scaler[0][1] - data_scaler[0][2]) * (test_labels + data_scaler[0][2])
+def build_model(hp) -> tf.keras.models.Model:
+    """
+    Builds model using Keras API from Tensorflow
 
-    print(len(prediction), len(test_labels))
+    :param hp: Model hyperparameters
+    :return: Tensorflow Model
+    """
+    hp_units = hp.Int('units', min_value=1, max_value=100, step=10)  # Define first layer units possibilities for train
+
+    model = keras.Sequential([
+        keras.layers.Dense(units=hp_units, activation='sigmoid'),
+        keras.layers.Dense(64, activation='sigmoid'),
+        keras.layers.Dense(1)
+    ]
+    )
+
+    hp_learning_rate = hp.Choice('learning_rate',
+                                 values=[0.001, 0.01, 0.1, 1.0])  # Possibilities for learning rate
+
+    model.compile(loss='mse',
+                  optimizer=tf.keras.optimizers.Adam(learning_rate=hp_learning_rate),
+                  metrics=['accuracy'])
+
+    return model
+
+
+def plot_loss(history) -> None:
+    # df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min()): Max = 1, Min = 2
+    loss = (history.history['loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
+    val_loss = (history.history['val_loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
+    plt.plot(loss, label='Loss (MSE)')
+    plt.plot(val_loss, label='Validation Loss (MSE)')
+    plt.xlabel('Epoch')
+    plt.ylabel('Error [kW^2]')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+"""
+------------------ ADDITIONAL FOR FUNCTIONALITY ------------------
+"""
+
+
+def split_dataset(df_to_split: pd.DataFrame) -> tuple:
+    """
+    Splits data frame into training and test sets
+    :param df_to_split: Full data set to be split
+    :return: Training Input Set, Training Output Set, Testing Input Set, Testing Output Set
+    """
+    train_dataset = df_to_split.sample(frac=0.8, random_state=0, axis=0)  # Sample data for training (80%)
+    test_dataset = df_to_split.drop(train_dataset.index)  # Drop training data to leave testing data
+
+    # Split datasets into Inputs / Outputs
+    x = train_dataset.iloc[:, 1:]
+    x_test = test_dataset.iloc[:, 1:]
+
+    y = train_dataset.iloc[:, 0]
+    y_test = test_dataset.iloc[:, 0]
+
+    # Add constant 1 column to inputs for offset compensation
+    x = sm.add_constant(x)
+    x_test = sm.add_constant(x_test)
+
+    return x, y, x_test, y_test
+
+
+def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> None:
+    prediction = (prediction + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
+    test_labels = (test_labels + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
 
     plt.plot(prediction, test_labels, 'o')
     plt.xlabel('Prediction Energy Requested From Grid [kW]')

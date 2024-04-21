@@ -12,7 +12,7 @@ seen on the same screen.
 
 *For some of the following commands, `python3` may need to be replaced with `python` depending on your environment variables. Please verify that `python --version` is on at least version `3.10` if this is the case, as this project will not work in Python 2 and may not work on older versions of Python 3*
 
-*The majority of these commands are there to keep a clean base install of python, if you are on a managed University computer or a computer where you do not have administrator privileges, skip to step 7*
+*The majority of these commands are there to keep a clean base install of python to ensure compatibility, if you are on a managed University computer or a computer where you do not have administrator privileges, skip to step 7*
 
 1. Ensure Python 3 is installed and pip is up-to-date
 2. Open a terminal or command prompt at the root folder of the project
