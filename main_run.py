@@ -66,20 +66,35 @@ def data_processor(df_processing: pd.DataFrame, data_scale: list) -> tuple:
 
     df_processing = df_processing.drop(columns=COLUMNS_TO_DROP)
 
-    df_processing.replace([np.inf, -np.inf],
-                          np.nan,
-                          inplace=True)  # Replaces inf values with NaN values
-    df_processing.dropna(how='any',
-                         axis=0,
-                         inplace=True)  # Drops all NaN values
+    df_processing.replace(
+        [
+            np.inf,
+            -np.inf
+        ],
+        np.nan,
+        inplace=True
+    )  # Replaces inf values with NaN values
 
-    df_processing = pd.get_dummies(df_processing,
-                                   columns=['WeatherIcon'],
-                                   prefix='',
-                                   prefix_sep='')  # One-Hot Encoding on categorical data
+    df_processing.dropna(
+        how='any',
+        axis=0,
+        inplace=True
+    )  # Drops all NaN values
+
+    df_processing = pd.get_dummies(
+        df_processing,
+        columns=['WeatherIcon'],
+        prefix='',
+        prefix_sep=''
+    )  # One-Hot Encoding on categorical data
+
     for col in WEATHER_COLUMN_TYPES:
-        df_processing[col] = df_processing[col].map({True: 1,
-                                                     False: 0})  # Mapping True & False from categorical to 1 & 0
+        df_processing[col] = df_processing[col].map(
+            {
+                True: 1,
+                False: 0
+            }
+        )  # Mapping True & False from categorical to 1 & 0
 
     df_processing = find_outliers(df_processing)
 
@@ -110,7 +125,13 @@ def build_scalars(df_reference: pd.DataFrame) -> list:
         if col != 'WeatherIcon':
             max_col = df_reference[col].max()  # Finds maximum value in column
             min_col = df_reference[col].min()  # Finds minimum value in column
-            data_scaler_generator.append([col, max_col, min_col])
+            data_scaler_generator.append(
+                [
+                    col,
+                    max_col,
+                    min_col
+                ]
+            )
     return data_scaler_generator
 
 
@@ -122,8 +143,10 @@ def min_max_scale(df_to_scale: pd.DataFrame) -> pd.DataFrame:
     """
     for col in df_to_scale.columns.tolist():
         if col != 'WeatherIcon':
-            df_to_scale[col] = ((df_to_scale[col] - df_to_scale[col].min()) /
-                                (df_to_scale[col].max() - df_to_scale[col].min()))
+            df_to_scale[col] = (
+                    (df_to_scale[col] - df_to_scale[col].min()) /
+                    (df_to_scale[col].max() - df_to_scale[col].min())
+            )
     return df_to_scale
 
 
@@ -156,7 +179,12 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
 
     correlation_matrix = df_collinearity_check.corr()
     top_corr_features = correlation_matrix.index
-    sns.heatmap(df_collinearity_check[top_corr_features].corr(), annot=False, cmap="RdYlGn")
+
+    sns.heatmap(
+        df_collinearity_check[top_corr_features].corr(),
+        annot=False,
+        cmap="RdYlGn"
+    )
     plt.show()
 
     columns = df_collinearity_check.columns.tolist()[1:]
@@ -179,7 +207,11 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
                     plt.show()
 
                     columns.remove(col2)
-                    df_collinearity_check.drop(col2, axis=1, inplace=True)
+                    df_collinearity_check.drop(
+                        col2,
+                        axis=1,
+                        inplace=True
+                    )
     return df_collinearity_check
 
 
@@ -191,22 +223,51 @@ def pca_reduce_dimension(df_pre_pca: pd.DataFrame) -> pd.DataFrame:
     :return: Reduced data frame
     """
     weather_cols = (col for col in df_pre_pca.columns.tolist() if "KW" not in col.upper())
+
     df_weather = df_pre_pca[weather_cols]
 
     pca = PCA(n_components=5)
+
     principal_components_weather = pca.fit_transform(df_weather)
-    principal_df_weather = pd.DataFrame(data=principal_components_weather,
-                                        columns=['Weather_PC1',
-                                                 'Weather_PC2',
-                                                 'Weather_PC3',
-                                                 'Weather_PC4',
-                                                 'Weather_PC5'])
 
-    df_pre_pca = df_pre_pca.drop(df_weather.columns.tolist(), axis=1)
-    df_pre_pca = pd.concat([df_pre_pca, principal_df_weather], axis=1)
+    principal_df_weather = pd.DataFrame(
+        data=principal_components_weather,
+        columns=[
+            'Weather_PC1',
+            'Weather_PC2',
+            'Weather_PC3',
+            'Weather_PC4',
+            'Weather_PC5'
+        ]
+    )
 
-    df_pre_pca.replace([np.inf, -np.inf], np.nan, inplace=True)  # Replaces inf values with NaN values
-    df_pre_pca.dropna(inplace=True, axis=0, how='any')  # Drops all NaN values
+    df_pre_pca = df_pre_pca.drop(
+        df_weather.columns.tolist(),
+        axis=1
+    )
+
+    df_pre_pca = pd.concat(
+        [
+            df_pre_pca,
+            principal_df_weather
+        ],
+        axis=1
+    )
+
+    df_pre_pca.replace(
+        [
+            np.inf,
+            -np.inf
+        ],
+        np.nan,
+        inplace=True
+    )  # Replaces inf values with NaN values
+
+    df_pre_pca.dropna(
+        inplace=True,
+        axis=0,
+        how='any'
+    )  # Drops all NaN values
 
     return df_pre_pca
 
@@ -328,11 +389,12 @@ def build_model(hp) -> tf.keras.models.Model:
         step=10
     )  # Define first layer units possibilities for training of hyperparameters
 
-    model = keras.Sequential([
-        keras.layers.Dense(units=hp_units, activation='sigmoid'),
-        keras.layers.Dense(64, activation='sigmoid'),
-        keras.layers.Dense(1)
-    ]
+    model = keras.Sequential(
+        [
+            keras.layers.Dense(units=hp_units, activation='sigmoid'),
+            keras.layers.Dense(64, activation='sigmoid'),
+            keras.layers.Dense(1)
+        ]
     )  # Definition of neural network model structure
 
     hp_learning_rate = hp.Choice(
@@ -365,8 +427,14 @@ def plot_loss(history) -> None:
     Plots loss curve for both training data and validation data
     :param history: The stored metrics from the Keras model training
     """
-    loss = (history.history['loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])  # Unscale
-    val_loss = (history.history['val_loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])  # Unscale
+    loss = (
+            (history.history['loss'] + data_scaler[0][2]) *
+            (data_scaler[0][1] - data_scaler[0][2])
+    )  # Unscale
+    val_loss = (
+            (history.history['val_loss'] + data_scaler[0][2]) *
+            (data_scaler[0][1] - data_scaler[0][2])
+    )  # Unscale
     plt.plot(loss, label='Loss (MAE)')
     plt.plot(val_loss, label='Validation Loss (MAE)')
     plt.xlabel('Epoch')
@@ -411,8 +479,14 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
     :param test_labels: Reserved unseen test output data
     :param title: Type of model used as string
     """
-    prediction = (prediction + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
-    test_labels = (test_labels + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
+    prediction = (
+            (prediction + data_scaler[0][2]) *
+            (data_scaler[0][1] - data_scaler[0][2])
+    )
+    test_labels = (
+            (test_labels + data_scaler[0][2]) *
+            (data_scaler[0][1] - data_scaler[0][2])
+    )
 
     plt.plot(prediction, test_labels, 'o')
     plt.xlabel('Prediction Energy Requested From Grid [kW]')
