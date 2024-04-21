@@ -30,5 +30,6 @@ seen on the same screen.
 7. Install all dependencies by running `pip3 install -r requirements.txt`
 8. Run the `main.py` file by running `python3 main.py`
 
-*Known Issues*
+### Known Issues
 1. `Error: Can not perform a '--user' install. User site-packages are not visible in this virtualenv` FIX: Go to `pyvenv.cfg` and set `include-system-site-packages` to `true` and reactivate venv
+2. Occasionally the Tensorflow automatic hyperparameter tuning will be completely wrong and as a result the model training will return a highly underfitted model. FIX: delete `./checkpoints` and `./logs` and run `main.py` again
