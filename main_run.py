@@ -194,7 +194,7 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
             if col1 != col2:
                 y = df_collinearity_check[col2].to_numpy()
                 pearson = np.corrcoef(x, y)[0, 1]
-                if abs(pearson) > 0.8:
+                if abs(pearson) > 0.9:
                     print(Fore.RED + "Dropped:", col2, "Due to collinearity of", pearson, "with:", col1 + Fore.RESET)
 
                     plt.plot(df_collinearity_check[col1], df_collinearity_check[col2], 'o')
