@@ -25,6 +25,12 @@ from sklearn.decomposition import PCA
 from scipy import stats
 
 """
+------------------ SETTINGS ------------------
+"""
+
+CSV_FILE_PATH = 'assignment_docs/household_energy_data.csv'
+
+"""
 ------------------ TASK 1 ------------------
 """
 
@@ -362,7 +368,7 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('assignment_docs/household_energy_data.csv')
+    df = pd.read_csv(CSV_FILE_PATH)
     data_scaler = []
     df, data_scaler = data_processor(df, data_scaler)
     linear_regression(df)
