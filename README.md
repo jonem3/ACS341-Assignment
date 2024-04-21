@@ -33,3 +33,21 @@ seen on the same screen.
 ### Known Issues
 1. `Error: Can not perform a '--user' install. User site-packages are not visible in this virtualenv` FIX: Go to `pyvenv.cfg` and set `include-system-site-packages` to `true` and reactivate venv
 2. Occasionally the Tensorflow automatic hyperparameter tuning will be completely wrong and as a result the model training will return a highly underfitted model. FIX: delete `./checkpoints` and `./logs` and run `main.py` again
+
+### Assignment Checklist
+- [x] Load Data
+- [x] Pre-Process Data
+  - [x] Handle NaN/Inf values
+  - [x] Process the categorical column (Final Column)
+  - [x] Handle outliers
+  - [x] Scale data
+  - [x] Remove collinear columns
+  - [x] Reduce dimension of weather data due to low relevancy
+- [x] Build Linear Model
+- [x] Build DNN Model
+  - [x] Tune DNN Model Hyperparameters
+  - [x] Setup callbacks on DNN Model
+  - [x] Evaluate DNN Model
+- [ ] Report Task 1
+- [ ] Report Task 2
+- [ ] Report Task 3
