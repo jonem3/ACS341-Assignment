@@ -14,6 +14,7 @@ seen on the same screen.
 
 1. Download `household_energy_data.csv` from the assignment page ensuring that the file name matches exactly here *(no `(1)`, etc.)*
 2. Save the above file into the `./assignment_docs` folder at the root of the project
+3. When the `main.py` file has finished running, there is the option to view all training data in Tensorboard. This can be achieved by running `tensorboard --logdir logs` in the root folder of the project 
 
 #### Python Instructions
 
