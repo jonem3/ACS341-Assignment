@@ -7,7 +7,7 @@ requirements file as standard for python projects.
 
 **Please note:** The first time the assignment code is run, it will tune the Tensorflow Model hyperparameters, and save them to a folder within the project.
 This will take
-quite some time. After this, I would recommend re-running so all relevant information can be
+quite some time. After this, I would recommend deleting `./logs` and re-running so all relevant information can be
 seen on the same screen.
 
 ### Generic Project Setup Instructions
