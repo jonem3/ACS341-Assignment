@@ -115,6 +115,11 @@ def build_scalars(df_reference: pd.DataFrame) -> list:
 
 
 def min_max_scale(df_to_scale: pd.DataFrame) -> pd.DataFrame:
+    """
+    Scales each column in the data frame to be within the range of [0, 1]
+    :param df_to_scale: Unscaled data frame
+    :return: Scaled data frame
+    """
     for col in df_to_scale.columns.tolist():
         if col != 'WeatherIcon':
             df_to_scale[col] = ((df_to_scale[col] - df_to_scale[col].min()) /
@@ -124,8 +129,8 @@ def min_max_scale(df_to_scale: pd.DataFrame) -> pd.DataFrame:
 
 def find_outliers(df_with_outliers: pd.DataFrame) -> pd.DataFrame:
     """
-    Finds outliers in each column using Z-Score, outliers are then replaced with the edge value for the direction of
-    the outlier.
+    Finds outliers in each column using Z-Score, outliers are then replaced with an interpolated value
+    based on the other values in that row
     :param df_with_outliers: The data frame to be cleaned
     :return: The cleaned data frame
     """
@@ -179,6 +184,12 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
 
 
 def pca_reduce_dimension(df_pre_pca: pd.DataFrame) -> pd.DataFrame:
+    """
+    Reduces the data frame using PCA to reduce dimensions, specifically targeting all the weather based data
+    in the dataset
+    :param df_pre_pca: Dataframe before dimensionality reduction
+    :return: Reduced data frame
+    """
     weather_cols = (col for col in df_pre_pca.columns.tolist() if "KW" not in col.upper())
     df_weather = df_pre_pca[weather_cols]
 
@@ -229,6 +240,11 @@ def linear_regression(df_processed: pd.DataFrame) -> None:
 
 
 def deep_neural_network(df_processed: pd.DataFrame) -> None:
+    """
+    Deep neural network model generation, tuning & testing. This function uses Tensorflow to implement a neural network
+    which predicts the daily household energy import.
+    :param df_processed: Pre-processed data frame for training
+    """
     train_features, train_labels, test_features, test_labels = split_dataset(df_processed)
 
     tuner = kt.Hyperband(
@@ -238,7 +254,7 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         factor=3,
         directory='./checkpoints',
         project_name='acs341_assignment'
-    )
+    )  # Build & configure the tuner object for tuning model hyperparameters
 
     early_stopping_callback = keras.callbacks.EarlyStopping(
         monitor='val_loss',
@@ -246,19 +262,19 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         verbose=1,
         mode='min',
         restore_best_weights=True
-    )
+    )  # Tensorflow callback for stopping training early if improvement plateaus
 
     tensorboard_callback = keras.callbacks.TensorBoard(
         log_dir='./logs',
         histogram_freq=1
-    )
+    )  # Tensorflow callback for logging data to be viewable in Tensorboard
 
     reduce_lr_callback = tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',
         factor=0.8,
         patience=5,
         verbose=1,
-    )
+    )  # Tensorflow callback for reducing the optimiser learning rate on improvement plateau, for fine-tuning
 
     tuner.search(
         train_features,
@@ -270,11 +286,11 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
             reduce_lr_callback,
             tensorboard_callback
         ]
-    )
+    )  # Run hyperparameter tuning on the neural network to generate & save the best settings to train on (or load old)
 
-    best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+    best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]  # Store best hyperparameters for building model
 
-    dnn_household_energy_model = tuner.hypermodel.build(best_hps)
+    dnn_household_energy_model = tuner.hypermodel.build(best_hps)  # Build the DNN model with the generated settings
 
     history = dnn_household_energy_model.fit(
         train_features,
@@ -282,53 +298,75 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         validation_split=0.2,
         verbose=1,
         epochs=200,
-        batch_size=32,
         callbacks=[
             early_stopping_callback,
             reduce_lr_callback,
             tensorboard_callback
         ]
-    )
+    )  # Train the model on the dataset, splitting into 20% validation data, 80% training data
 
-    print(dnn_household_energy_model.summary())
+    print(dnn_household_energy_model.summary())  # Output the summary of the training, including all specified metrics
 
     plot_loss(history)
-    dnn_household_energy_model.evaluate(test_features, test_labels, verbose=1)
-    prediction = dnn_household_energy_model.predict(test_features).flatten()
+    dnn_household_energy_model.evaluate(test_features, test_labels, verbose=1)  # Evaluate the model on the test data
+    prediction = dnn_household_energy_model.predict(test_features).flatten()  # Generate predictions from the test data
 
-    quality_graphs(prediction, test_labels, 'Deep Neural Network')
+    quality_graphs(prediction, test_labels, 'Deep Neural Network')  # Plot the test data performance
 
 
 def build_model(hp) -> tf.keras.models.Model:
     """
-    Builds model using Keras API from Tensorflow
+    Builds Tensorflow Neural Network model using Keras API from Tensorflow
 
     :param hp: Model hyperparameters
     :return: Tensorflow Model
     """
-    hp_units = hp.Int('units', min_value=1, max_value=100, step=10)  # Define first layer units possibilities for train
+    hp_units = hp.Int(
+        'units',
+        min_value=1,
+        max_value=100,
+        step=10
+    )  # Define first layer units possibilities for training of hyperparameters
 
     model = keras.Sequential([
         keras.layers.Dense(units=hp_units, activation='sigmoid'),
         keras.layers.Dense(64, activation='sigmoid'),
         keras.layers.Dense(1)
     ]
-    )
+    )  # Definition of neural network model structure
 
-    hp_learning_rate = hp.Choice('learning_rate',
-                                 values=[0.001, 0.01, 0.1, 1.0])  # Possibilities for learning rate
+    hp_learning_rate = hp.Choice(
+        'learning_rate',
+        values=[
+            0.001,
+            0.01,
+            0.1,
+            1.0
+        ]
+    )  # Possibilities for learning rate
 
-    model.compile(loss='mse',
-                  optimizer=tf.keras.optimizers.SGD(learning_rate=hp_learning_rate),
-                  metrics=['mae', 'mse', 'accuracy'])
+    model.compile(
+        loss='mse',
+        optimizer=tf.keras.optimizers.SGD(
+            learning_rate=hp_learning_rate
+        ),
+        metrics=[
+            'mae',
+            'mse',
+            'accuracy'
+        ]
+    )  # Compile the Tensorflow model & specify optimiser and desired metrics
 
     return model
 
 
 def plot_loss(history) -> None:
-    # df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min()): Max = 1, Min = 2
-    loss = (history.history['loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
-    val_loss = (history.history['val_loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
+    """
+    Plots loss curve for both training data and validation data
+    :param history: The stored metrics from the Keras model training
+    """
+    loss = (history.history['loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])  # Unscale
+    val_loss = (history.history['val_loss'] + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])  # Unscale
     plt.plot(loss, label='Loss (MAE)')
     plt.plot(val_loss, label='Validation Loss (MAE)')
     plt.xlabel('Epoch')
@@ -367,6 +405,12 @@ def split_dataset(df_to_split: pd.DataFrame) -> tuple:
 
 
 def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> None:
+    """
+    Plots quality graphs of prediction and test labels, allows for visualization of model performance
+    :param prediction: Predicted data from generated model
+    :param test_labels: Reserved unseen test output data
+    :param title: Type of model used as string
+    """
     prediction = (prediction + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
     test_labels = (test_labels + data_scaler[0][2]) * (data_scaler[0][1] - data_scaler[0][2])
 
@@ -396,6 +440,9 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
 
 
 if __name__ == '__main__':
+    """
+    Main entry point for processing data, training and evaluating model
+    """
     df = pd.read_csv(CSV_FILE_PATH)
     data_scaler = []
     df, data_scaler = data_processor(df, data_scaler)
