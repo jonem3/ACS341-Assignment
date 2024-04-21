@@ -10,13 +10,13 @@ This will take
 quite some time. After this, I would recommend re-running so all relevant information can be
 seen on the same screen.
 
-### Generic Instructions
+### Generic Project Setup Instructions
 
 1. Download `household_energy_data.csv` from the [assignment page](https://vle.shef.ac.uk/webapps/blackboard/content/listContent.jsp?course_id=_107288_1&content_id=_6604809_1&mode=reset) ensuring that the file name matches exactly here *(no `(1)`, etc.)*
 2. Save the above file into the `./assignment_docs` at the root of the project
 3. When the `main.py` file has finished running, there is the option to view all training metrics in Tensorboard. This can be achieved by running `tensorboard --logdir logs` in the root folder of the project, and then accessing the link that this command provides
 
-### Python Instructions
+### Python Setup Instructions
 
 *For some of the following commands, `python3` may need to be replaced with `python` depending on your environment variables. Please verify that `python --version` is on at least version `3.10` if this is the case, as this project will not work in Python 2 and may not work on older versions of Python 3*
 
