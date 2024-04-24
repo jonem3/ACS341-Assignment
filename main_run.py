@@ -362,7 +362,7 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         train_labels,
         validation_split=0.2,
         verbose=1,
-        epochs=500,
+        epochs=200,
         callbacks=[
             early_stopping_callback,
             reduce_lr_callback,
