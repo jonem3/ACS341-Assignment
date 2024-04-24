@@ -12,6 +12,8 @@ required as standard in Python
 All used libraries have been stored to a requirements file for your convenience, full setup instructions can be found
 in README.md in the root folder of this project
 """
+import os
+
 import numpy as np
 import pandas as pd
 import scipy
@@ -563,6 +565,10 @@ if __name__ == '__main__':
     """
     Main entry point for processing data, training and evaluating model
     """
+    if not os.path.isfile(CSV_FILE_PATH):
+        print(f'{Fore.RED}File {CSV_FILE_PATH} does not exist!\nPlease ensure CSV_FILE_PATH is set correctly'
+              f' at the top of main_run.py{Fore.RESET}')
+        exit(0)
     df = pd.read_csv(CSV_FILE_PATH)
     data_scaler = []
     df, data_scaler = data_processor(df, data_scaler)
