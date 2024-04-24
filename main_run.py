@@ -13,19 +13,20 @@ All used libraries have been stored to a requirements file for your convenience,
 in README.md in the root folder of this project
 """
 import os
+
+import keras_tuner as kt
 import numpy as np
 import pandas as pd
 import scipy
-import sklearn
-from tensorflow import keras
-import tensorflow as tf
-import keras_tuner as kt
-from matplotlib import pyplot as plt
 import seaborn as sns
+import sklearn
 import statsmodels.api as sm
+import tensorflow as tf
 from colorama import Fore
-from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
 from scipy import stats
+from sklearn.decomposition import PCA
+from tensorflow import keras
 
 """
 ------------------ SETTINGS ------------------
