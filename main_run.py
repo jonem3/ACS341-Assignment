@@ -14,6 +14,7 @@ in README.md in the root folder of this project
 """
 import numpy as np
 import pandas as pd
+import scipy
 import sklearn
 from tensorflow import keras
 import tensorflow as tf
@@ -323,7 +324,7 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
 
     early_stopping_callback = keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=5,
         verbose=1,
         mode='min',
         restore_best_weights=True
@@ -336,15 +337,15 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
 
     reduce_lr_callback = tf.keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss',
-        factor=0.8,
-        patience=5,
+        factor=0.5,
+        patience=3,
         verbose=1,
     )  # Tensorflow callback for reducing the optimiser learning rate on improvement plateau, for fine-tuning
 
     tuner.search(
         train_features,
         train_labels,
-        epochs=50,
+        epochs=100,
         validation_split=0.3,
         callbacks=[
             early_stopping_callback,
@@ -362,7 +363,7 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         train_labels,
         validation_split=0.2,
         verbose=1,
-        epochs=200,
+        epochs=100,
         callbacks=[
             early_stopping_callback,
             reduce_lr_callback,
@@ -420,9 +421,7 @@ def build_model(hp) -> tf.keras.models.Model:
             learning_rate=hp_learning_rate
         ),
         metrics=[
-            'mae',
-            'mse',
-            'accuracy'
+            'mae'
         ]
     )  # Compile the Tensorflow model & specify optimiser and desired metrics
 
@@ -437,11 +436,12 @@ def plot_loss(history) -> None:
     loss = (
             (history.history['loss'] + data_scaler[0][2]) *
             (data_scaler[0][1] - data_scaler[0][2])
-    )  # Unscale
+    )[1:]  # Unscale
     val_loss = (
             (history.history['val_loss'] + data_scaler[0][2]) *
             (data_scaler[0][1] - data_scaler[0][2])
-    )  # Unscale
+    )[1:]  # Unscale
+    print(loss)
     plt.plot(loss, label='Loss (MSE)')
     plt.plot(val_loss, label='Validation Loss (MSE)')
     plt.xlabel('Epoch')
@@ -494,10 +494,21 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
             (data_scaler[0][1] - data_scaler[0][2])
     )
 
-    plt.plot(test_labels, prediction, 'o')
+    regress = scipy.stats.linregress(test_labels, prediction)
+    gradient = regress.slope
+    offset = regress.intercept
+
+    x = np.linspace(min(test_labels), max(test_labels), len(test_labels))
+    y_optimal = x
+    y_regress = (x * gradient) + offset
+
+    plt.plot(test_labels, prediction, 'o',  zorder=1)
+    plt.plot(x, y_optimal, '--', linewidth=4, zorder=2)
+    plt.plot(x, y_regress, linewidth=4, zorder=3)
     plt.ylabel('Prediction Energy Requested From Grid [kW]')
     plt.xlabel('Actual Energy Requested From Grid [kW]')
     plt.title(title + ' Prediction vs Actual Energy Requested From Grid')
+    plt.legend(['Values', 'Optimal', 'Fitted'])
     plt.grid()
     plt.show()
 
@@ -519,6 +530,8 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
     plt.show()
 
 def calculate_accuracy(prediction: list, test_labels: list, title: str) -> None:
+    accuracy = 5
+
     prediction = (
             (prediction + data_scaler[0][2]) *
             (data_scaler[0][1] - data_scaler[0][2])
@@ -528,10 +541,19 @@ def calculate_accuracy(prediction: list, test_labels: list, title: str) -> None:
             (data_scaler[0][1] - data_scaler[0][2])
     )
 
-    mae = sklearn.metrics.mean_absolute_error(test_labels, prediction)
-    mse = sklearn.metrics.mean_squared_error(test_labels, prediction)
-    print(f'{Fore.BLUE}{title} MAE: {mae}')
-    print(f'{title} MSE: {mse}{Fore.RESET}')
+    mae = round(sklearn.metrics.mean_absolute_error(test_labels, prediction), accuracy)
+    mse = round(sklearn.metrics.mean_squared_error(test_labels, prediction), accuracy)
+
+    regress = scipy.stats.linregress(test_labels, prediction)
+    gradient = round(regress.slope, accuracy)
+    offset = round(regress.intercept, accuracy)
+
+    pearson = round(np.corrcoef(test_labels, prediction)[0, 1], accuracy)
+
+    print(f'\n\n{Fore.BLUE}{title.upper()} MAE: {mae}')
+    print(f'{title.upper()} MSE: {mse}')
+    print(f'{title.upper()} PEARSON CORRELATION COEFFICIENT: {pearson}')
+    print(f'{title.upper()} FITTED COMPARISON EQUATION PREDICTION = ({gradient} x TEST_LABELS) + {offset}{Fore.RESET}\n\n')
 
 
 
