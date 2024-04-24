@@ -441,6 +441,8 @@ def plot_loss(history) -> None:
             (history.history['val_loss'] + data_scaler[0][2]) *
             (data_scaler[0][1] - data_scaler[0][2])
     )[1:]  # Unscale
+    # Both loss and validation loss have had their first value dropped as loss starts very high, making
+    # the rest of the graph unreadable
     print(loss)
     plt.plot(loss, label='Loss (MSE)')
     plt.plot(val_loss, label='Validation Loss (MSE)')
