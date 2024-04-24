@@ -14,6 +14,7 @@ in README.md in the root folder of this project
 """
 import numpy as np
 import pandas as pd
+import sklearn
 from tensorflow import keras
 import tensorflow as tf
 import keras_tuner as kt
@@ -195,12 +196,11 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
                 y = df_collinearity_check[col2].to_numpy()
                 pearson = np.corrcoef(x, y)[0, 1]
                 if abs(pearson) > 0.9:
-                    print(Fore.RED + "Dropped:", col2, "Due to collinearity of", pearson, "with:", col1 + Fore.RESET)
+                    print(f'{Fore.RED} Dropped {col2} Due to collinearity of: {pearson} with: {col1} {Fore.RESET}')
 
                     plt.plot(df_collinearity_check[col1], df_collinearity_check[col2], 'o')
                     plt.title(
-                        'Collinearity Report - (' + col1 + ', ' + col2 + ', ' +
-                        str(round((100 * float(pearson)), 2)) + '%)')
+                        f'Collinearity Report - ({col1}, {col2}: {str(round((100 * float(pearson)), 2))}%)')
                     plt.xlabel(col1)
                     plt.ylabel(col2)
                     plt.grid(True)
@@ -294,6 +294,10 @@ def linear_regression(df_processed: pd.DataFrame) -> None:
 
     quality_graphs(prediction, y_test, 'Linear Regression')
 
+    y_test = y_test.tolist()
+
+    calculate_accuracy(prediction, y_test, 'Linear Regression')
+
 
 """
 ------------------ TASK 3 ------------------
@@ -358,7 +362,7 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         train_labels,
         validation_split=0.2,
         verbose=1,
-        epochs=200,
+        epochs=500,
         callbacks=[
             early_stopping_callback,
             reduce_lr_callback,
@@ -373,6 +377,9 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
     prediction = dnn_household_energy_model.predict(test_features).flatten()  # Generate predictions from the test data
 
     quality_graphs(prediction, test_labels, 'Deep Neural Network')  # Plot the test data performance
+
+    test_labels = test_labels.tolist()
+    calculate_accuracy(prediction, test_labels, 'Deep Neural Network')
 
 
 def build_model(hp) -> tf.keras.models.Model:
@@ -435,10 +442,10 @@ def plot_loss(history) -> None:
             (history.history['val_loss'] + data_scaler[0][2]) *
             (data_scaler[0][1] - data_scaler[0][2])
     )  # Unscale
-    plt.plot(loss, label='Loss (MAE)')
-    plt.plot(val_loss, label='Validation Loss (MAE)')
+    plt.plot(loss, label='Loss (MSE)')
+    plt.plot(val_loss, label='Validation Loss (MSE)')
     plt.xlabel('Epoch')
-    plt.ylabel('Error [kW]')
+    plt.ylabel('Error [kW^2]')
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -471,7 +478,6 @@ def split_dataset(df_to_split: pd.DataFrame) -> tuple:
 
     return x, y, x_test, y_test
 
-
 def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> None:
     """
     Plots quality graphs of prediction and test labels, allows for visualization of model performance
@@ -488,9 +494,9 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
             (data_scaler[0][1] - data_scaler[0][2])
     )
 
-    plt.plot(prediction, test_labels, 'o')
-    plt.xlabel('Prediction Energy Requested From Grid [kW]')
-    plt.ylabel('Actual Energy Requested From Grid [kW]')
+    plt.plot(test_labels, prediction, 'o')
+    plt.ylabel('Prediction Energy Requested From Grid [kW]')
+    plt.xlabel('Actual Energy Requested From Grid [kW]')
     plt.title(title + ' Prediction vs Actual Energy Requested From Grid')
     plt.grid()
     plt.show()
@@ -511,6 +517,22 @@ def quality_graphs(prediction: list, test_labels: pd.DataFrame, title: str) -> N
     plt.title(title + ' Prediction Error')
     plt.grid()
     plt.show()
+
+def calculate_accuracy(prediction: list, test_labels: list, title: str) -> None:
+    prediction = (
+            (prediction + data_scaler[0][2]) *
+            (data_scaler[0][1] - data_scaler[0][2])
+    )
+    test_labels = (
+            (test_labels + data_scaler[0][2]) *
+            (data_scaler[0][1] - data_scaler[0][2])
+    )
+
+    mae = sklearn.metrics.mean_absolute_error(test_labels, prediction)
+    mse = sklearn.metrics.mean_squared_error(test_labels, prediction)
+    print(f'{Fore.BLUE}{title} MAE: {mae}')
+    print(f'{title} MSE: {mse}{Fore.RESET}')
+
 
 
 if __name__ == '__main__':
