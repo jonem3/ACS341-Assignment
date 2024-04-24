@@ -13,7 +13,6 @@ All used libraries have been stored to a requirements file for your convenience,
 in README.md in the root folder of this project
 """
 import os
-
 import numpy as np
 import pandas as pd
 import scipy
