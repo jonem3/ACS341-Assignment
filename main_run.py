@@ -179,7 +179,6 @@ def remove_collinearity(df_collinearity_check: pd.DataFrame) -> pd.DataFrame:
     :param df_collinearity_check: data frame to be checked for collinearity
     :return: cleaned data frame
     """
-    # TODO - Basing initial collinear detection on: https://www.stratascratch.com/blog/a-beginner-s-guide-to-collinearity-what-it-is-and-how-it-affects-our-regression-model/
 
     correlation_matrix = df_collinearity_check.corr()
     top_corr_features = correlation_matrix.index
