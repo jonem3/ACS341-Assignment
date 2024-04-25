@@ -307,10 +307,10 @@ def linear_regression(df_processed: pd.DataFrame) -> None:
 """
 
 
-def deep_neural_network(df_processed: pd.DataFrame) -> None:
+def artificial_neural_network(df_processed: pd.DataFrame) -> None:
     """
-    Deep neural network model generation, tuning & testing. This function uses Tensorflow to implement a neural network
-    which predicts the daily household energy import.
+    Artificial neural network model generation, tuning & testing. This function uses Tensorflow to implement a neural
+    network which predicts the daily household energy import.
     :param df_processed: Pre-processed data frame for training
     """
     train_features, train_labels, test_features, test_labels = split_dataset(df_processed)
@@ -358,9 +358,9 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
 
     best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]  # Store best hyperparameters for building model
 
-    dnn_household_energy_model = tuner.hypermodel.build(best_hps)  # Build the DNN model with the generated settings
+    ann_household_energy_model = tuner.hypermodel.build(best_hps)  # Build the ANN model with the generated settings
 
-    history = dnn_household_energy_model.fit(
+    history = ann_household_energy_model.fit(
         train_features,
         train_labels,
         validation_split=0.2,
@@ -373,16 +373,16 @@ def deep_neural_network(df_processed: pd.DataFrame) -> None:
         ]
     )  # Train the model on the dataset, splitting into 20% validation data, 80% training data
 
-    print(dnn_household_energy_model.summary())  # Output the summary of the training, including all specified metrics
+    print(ann_household_energy_model.summary())  # Output the summary of the training, including all specified metrics
 
     plot_loss(history)
-    dnn_household_energy_model.evaluate(test_features, test_labels, verbose=1)  # Evaluate the model on the test data
-    prediction = dnn_household_energy_model.predict(test_features).flatten()  # Generate predictions from the test data
+    ann_household_energy_model.evaluate(test_features, test_labels, verbose=1)  # Evaluate the model on the test data
+    prediction = ann_household_energy_model.predict(test_features).flatten()  # Generate predictions from the test data
 
-    quality_graphs(prediction, test_labels, 'Deep Neural Network')  # Plot the test data performance
+    quality_graphs(prediction, test_labels, 'Artificial Neural Network')  # Plot the test data performance
 
     test_labels = test_labels.tolist()
-    calculate_accuracy(prediction, test_labels, 'Deep Neural Network')
+    calculate_accuracy(prediction, test_labels, 'Artificial Neural Network')
 
 
 def build_model(hp) -> tf.keras.models.Model:
@@ -557,7 +557,7 @@ def calculate_accuracy(prediction: list, test_labels: list, title: str) -> None:
     print(f'\n\n{Fore.BLUE}{title.upper()} MAE: {mae}')
     print(f'{title.upper()} MSE: {mse}')
     print(f'{title.upper()} PEARSON CORRELATION COEFFICIENT: {pearson}')
-    print(f'{title.upper()} FITTED COMPARISON EQUATION PREDICTION = ({gradient} x TEST_LABELS) + {offset}{Fore.RESET}\n\n')
+    print(f'{title.upper()} FITTED COMPARISON EQUATION: PREDICTION = ({gradient} x TEST_LABELS) + {offset}{Fore.RESET}\n\n')
 
 
 
@@ -573,4 +573,4 @@ if __name__ == '__main__':
     data_scaler = []
     df, data_scaler = data_processor(df, data_scaler)
     linear_regression(df)
-    deep_neural_network(df)
+    artificial_neural_network(df)
