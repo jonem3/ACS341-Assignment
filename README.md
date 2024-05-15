@@ -1,4 +1,4 @@
-# ACS341 Assignment - Spring 2024, Matthew Jones (Registration Num: 200326702)
+# ACS341 Assignment - Spring 2024, Matthew Jones
 
 Within the folder structure for this assignment, I have stored all the dependencies in order to run the project in a
 requirements file as standard for python projects.
