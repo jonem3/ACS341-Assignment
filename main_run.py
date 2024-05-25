@@ -1,6 +1,5 @@
 """
 Author: Matthew Philip Jones
-Registration Number: 200326702
 Email: mjones18@sheffield.ac.uk
 Date Created: 12th March 2024
 
